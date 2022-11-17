@@ -17,7 +17,7 @@ import pickle
 import argparse
 import itertools
 import collections
-
+import cv2
 
 # Configure all options first so we can custom load other libraries (Theano) based on device specified by user.
 parser = argparse.ArgumentParser(description='Generate a new image by applying style onto a content image.',
@@ -94,7 +94,7 @@ if sys.platform == 'win32':
 import lasagne
 from lasagne.layers import Conv2DLayer as ConvLayer, Pool2DLayer as PoolLayer
 from lasagne.layers import InputLayer, ConcatLayer
-
+import imageio
 print('{}  - Using device `{}` for processing the images.{}'.format(ansi.CYAN, theano.config.device, ansi.ENDC))
 
 
@@ -224,7 +224,7 @@ class NeuralGenerator(object):
 
         # Prepare file output and load files specified as input.
         if args.save_every is not None:
-            os.makedirs('frames', exist_ok=True)
+            os.makedirs('frames2', exist_ok=True)
         if args.output is not None and os.path.isfile(args.output):
             os.remove(args.output)
 
@@ -287,8 +287,8 @@ class NeuralGenerator(object):
         """
         basename, _ = os.path.splitext(filename)
         mapname = basename + args.semantic_ext
-        img = scipy.ndimage.imread(filename, mode='RGB') if os.path.exists(filename) else None
-        map = scipy.ndimage.imread(mapname) if os.path.exists(mapname) and args.semantic_weight > 0.0 else None
+        img = np.array(imageio.imread(filename))[..., :3] if os.path.exists(filename) else None
+        map = np.array(imageio.imread(mapname))[..., :3] if os.path.exists(mapname) and args.semantic_weight > 0.0 else None
 
         if img is not None: print('  - Loading `{}` for {} data.'.format(filename, name))
         if map is not None: print('  - Adding `{}` as semantic map.'.format(mapname))
@@ -551,7 +551,7 @@ class NeuralGenerator(object):
             frame = Xn.reshape(self.content_img.shape[1:])
             resolution = self.content_img_original.shape
             image = scipy.misc.toimage(self.model.finalize_image(frame, resolution), cmin=0, cmax=255)
-            image.save('frames/%04d.png'%self.frame)
+            image.save('frames2/%04d.png'%self.frame)
 
         # Print more information to the console every few iterations.
         if args.print_every and self.frame % args.print_every == 0:
@@ -611,7 +611,7 @@ class NeuralGenerator(object):
                 Xn = scipy.misc.imresize(Xn[0], shape, interp='bicubic')
                 Xn = Xn.transpose((2, 0, 1))[np.newaxis]
             if os.path.exists(args.seed):
-                seed_image = scipy.ndimage.imread(args.seed, mode='RGB')
+                seed_image = np.array(imageio.imread(args.seed))[..., :3]
                 seed_image = scipy.misc.imresize(seed_image, shape, interp='bicubic')
                 self.seed_image = self.model.prepare_image(seed_image)
                 Xn = self.seed_image[0] + self.model.pixel_mean
@@ -645,7 +645,8 @@ class NeuralGenerator(object):
             Xn = Xn.reshape(resolution)
 
             output = self.model.finalize_image(Xn[0], self.content_img_original.shape)
-            scipy.misc.toimage(output, cmin=0, cmax=255).save(args.output)
+            # scipy.misc.toimage(output, cmin=0, cmax=255).save(args.output)
+            cv2.imwrite(args.output, output)
             if interrupt: break
 
         status = "finished in" if not interrupt else "interrupted at"
