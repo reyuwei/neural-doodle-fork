@@ -45,6 +45,7 @@ add_arg('--iterations',     default=100, type=int,          help='Number of iter
 add_arg('--device',         default='cpu', type=str,        help='Index of the GPU number to use, for theano.')
 add_arg('--print-every',    default=10, type=int,           help='How often to log statistics to stdout.')
 add_arg('--save-every',     default=10, type=int,           help='How frequently to save PNG into `frames`.')
+add_arg('--savefolder',     default='frames', type=str,           help='save folder')
 args = parser.parse_args()
 
 
@@ -224,7 +225,7 @@ class NeuralGenerator(object):
 
         # Prepare file output and load files specified as input.
         if args.save_every is not None:
-            os.makedirs('frames2', exist_ok=True)
+            os.makedirs(args.savefolder, exist_ok=True)
         if args.output is not None and os.path.isfile(args.output):
             os.remove(args.output)
 
@@ -551,7 +552,7 @@ class NeuralGenerator(object):
             frame = Xn.reshape(self.content_img.shape[1:])
             resolution = self.content_img_original.shape
             image = scipy.misc.toimage(self.model.finalize_image(frame, resolution), cmin=0, cmax=255)
-            image.save('frames2/%04d.png'%self.frame)
+            image.save(args.savefolder + '/%04d.png'%self.frame)
 
         # Print more information to the console every few iterations.
         if args.print_every and self.frame % args.print_every == 0:
